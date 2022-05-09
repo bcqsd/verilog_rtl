@@ -15,19 +15,11 @@ input 10-bit address and get 32-bit inst as douta
 
 */
 
-blk_mem_0 rom(
+blk_mem_gen_0 rom(
   .clka(clka),    // input wire clka
   .ena(ena),      // input wire ena
   .addra(addra),  // input wire [9 : 0] addra
   .douta(douta)  
-);
-
-display display(
-    .clka(clka),
-    .reset(rst),
-    .s(douta),
-    .seg(seg),
-    .ans(ans)
 );
 
 

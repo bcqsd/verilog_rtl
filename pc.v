@@ -23,7 +23,7 @@ end
 
 adder pc_adder(
  .v1(pc_out),
- .v2(32'h4),
+ .v2(32'b0100),
  .out(pc_in)
 );
 

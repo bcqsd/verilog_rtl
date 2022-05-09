@@ -9,10 +9,10 @@ module clk_div(
   begin 
   cnt<=cnt+32'b1;
   if(cnt[26]==1) begin 
-    dived_clk<=1;
+    dived_clk<=32'b1;
   end
   else begin
-   dived_clk<=0;
+   dived_clk<=32'b0;
    end
   end  
     

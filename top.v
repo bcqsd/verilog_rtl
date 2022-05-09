@@ -1,21 +1,29 @@
+`timescale 1ns / 1ps
+
 module top(
-  input clk,ena,rst,
+  input clk,rst,
    output wire jump,branch,alusrc,
   memwrite,memtoreg,regwrite,regdst,
-  output wire [2:0] alucontrol
+  output wire [2:0] alucontrol,
+  output reg [31:0] inst
     );
+
 wire [31:0] instr;
+reg [31:0] inst;
+always@(*)begin
+    inst=instr;
+end
 wire [31:0] dived_clk;    
 clk_div clk_div(
   .clk(clk),
   .dived_clk(dived_clk)
 );
 
-
+wire ena;
 wire [31:0] pc;
 wire [9:0] addr;
 pc top_pc(
- .clk(dived_clk),
+ .clk(clk),
  .rst(rst),
  .pc_out(pc),
  .inst_ce(ena)
