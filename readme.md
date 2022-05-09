@@ -1,0 +1,1 @@
+cqu 硬件相关课程  verilog module实现
