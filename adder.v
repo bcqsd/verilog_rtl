@@ -1,7 +1,6 @@
 module adder(
-   input [31:0] v1,
-   input [31:0] v2,
-   output wire [31:0] out
+    input wire[31:0] a,b,
+    output wire[31:0] c
     );
-   assign out=v1+v2; 
+    assign c = a + b;
 endmodule
