@@ -1,42 +1,38 @@
-module test_bench(
-    
-    );
-reg clk;
-reg rst;
-wire jump;
-wire branch;
-wire alusrc;
-wire memwrite;
-wire memtoreg;
-wire regwrite;
-wire regdst;
-wire [31:0] inst;
-wire [2:0] alucontrol; 
+module testbench();
+	reg clk;
+	reg rst;
 
-initial
-begin 
-    clk = 1'b0;
-    rst = 1'b0;
-    #50;
-    repeat(20)
-     begin 
- clk = ~clk;
-   $display("instruction: %h, memtoreg: %b,memwrite: %b,alusrc:%b, regdst:%b, regwrite : %b, jump: %b,branch: %b, alucontrol: %b",
- inst,memtoreg,memwrite,alusrc,regdst,regwrite,jump,branch,alucontrol);
- #50;
-end
-end
-top top(
-    .inst(inst),
-    .clk(clk),
-    .rst(rst),
-    .jump(jump),
-    .branch(branch),
-    .alusrc(alusrc),
-    .memwrite(memwrite),
-    .memtoreg(memtoreg),
-    .regwrite(regwrite),
-    .regdst(regdst),
-    .alucontrol(alucontrol)
-    );
+	wire[31:0] writedata,dataadr;
+	wire memwrite;
+
+	top dut(clk,rst,writedata,dataadr,memwrite);
+
+	initial begin 
+		rst <= 1;
+		#200;
+		rst <= 0;
+	end
+
+	always begin
+		clk <= 1;
+		#10;
+		clk <= 0;
+		#10;
+	
+	end
+
+	always @(negedge clk) begin
+		if(memwrite) begin
+			/* code */
+			if(dataadr === 84 & writedata === 7) begin
+				/* code */
+				$display("Simulation succeeded");
+				$stop;
+			end else if(dataadr !== 80) begin
+				/* code */
+				$display("Simulation Failed");
+				$stop;
+			end
+		end
+	end
 endmodule

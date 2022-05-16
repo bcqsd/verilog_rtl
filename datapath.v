@@ -4,11 +4,12 @@ module datapath(
     input wire jump,regwrite,regdst,alusrc,branch,memtoreg,
     output wire overflow,
     input wire [2:0] alucontrol,
-    output wire[31:0] PC, ALUOut, WriteData
+    output wire[31:0] PC, AluOut, WriteData
     );
 
-wire [31:0] PC_plus4, rd1, rd2, imme_extend;
-wire [31:0] alu_srcB, wd3, imme_sl2, pc_branch, pc_next, pc_next_jump, instr_sl2;
+wire [31:0] rd1, rd2, imme_extend;
+wire [31:0] alu_srcB, wd3, imme_sl2,instr_sl2;
+wire [31:0]  PC_plus4,pc_branch,pc_next,pc_next_jump;
 wire [4:0] write2reg;
 wire zero,pcsrc;
 assign pcsrc = zero & branch;
@@ -65,7 +66,7 @@ sign_extend sign_extend(
 
 // mux2 for wd3, write data port of regfile
 mux2 #(32) mux_wd3(
-    .a(ALUOut),
+    .a(AluOut),
     .b(ReadData),
     .s(memtoreg), //memtoreg
     .c(wd3)
@@ -101,7 +102,7 @@ alu alu(
     .a(rd1),   //alu_srcA  read from regfile
     .b(alu_srcB),
     .f(alucontrol), //alucontrol
-    .s(ALUOut),
+    .s(AluOut),
     .overflow(overflow),
     .zero(zero)
     );

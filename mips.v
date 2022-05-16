@@ -1,16 +1,14 @@
 module mips(
 	input wire clk,rst,
-	input wire[31:0] instr,
-    input wire[31:0] ReadData, 
-	output wire[31:0] AluOut,
-    output wire[31:0] PC,
-    output wire overflow,inst_ram_ena,data_ram_ena,data_ram_wea,WriteData
+	input wire[31:0] instr,ReadData, 
+	output wire[31:0] AluOut,PC,WriteData,
+    output wire inst_ram_ena,data_ram_ena,data_ram_wea
     );
 	
 	wire branch,memtoreg,alusrc,regdst,regwrite,jump,PCsrc,zero;
 	
     wire[2:0] alucontrol;
-    //cpu�?直在读指�?
+
     assign inst_ram_ena=1'b1;
 
 	controller controller(
@@ -31,7 +29,7 @@ module mips(
        .instr(instr),
        .ReadData(ReadData),
        .PC(PC), 
-       .ALUOut(AluOut), 
+       .AluOut(AluOut), 
        .WriteData(WriteData),
        .jump(jump),
        .regwrite(regwrite),
@@ -39,8 +37,7 @@ module mips(
        .alusrc(alusrc),
        .branch(branch),
        .memtoreg(memtoreg),
-       .alucontrol(alucontrol),
-       .overflow(overflow)
+       .alucontrol(alucontrol)
     );
 	
 endmodule

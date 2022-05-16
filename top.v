@@ -2,22 +2,22 @@
 
 module top(
 	input wire clk,rst,
-    output wire overflow
+    output wire [31:0] writedata,dataadr,
+    output wire memwrite
     );
 	// wire clk;
-    wire inst_ram_ena,data_ram_ena;
-    wire data_ram_wea;
+    wire inst_ram_ena,data_ram_ena,data_ram_wea;
 	wire[31:0] pc,instr,WriteData,ReadData;
-    wire [31:0] AluOut;
+    assign writedata=WriteData;
+   assign memwrite=data_ram_wea;
 	mips mips(
           .clk(clk),
           .rst(rst),
 	      .instr(instr),
           .ReadData(ReadData), 
 	      .WriteData(WriteData),
-          .AluOut(AluOut),
+          .AluOut(dataadr),
           .PC(pc),
-          .overflow(overflow),
           .inst_ram_ena(inst_ram_ena),
           .data_ram_ena(data_ram_ena),
           .data_ram_wea(data_ram_wea)
@@ -26,15 +26,15 @@ module top(
        .clka(clk),    // input wire clka
        .ena(inst_ram_ena),      // input wire ena
        .wea(4'b0000),      // input wire [3 : 0] wea
-       .addra(pc[7:0]),  // input wire [9 : 0] addra
+       .addra(pc),   // input wire [31 : 0] addra
        .dina(32'b0),    // readonly
        .douta(instr)  // output wire [31 : 0] douta
     );
 	data_ram data_ram(
-        .clka(clk),    // input wire clka
-        .ena(data_ram_ena),      // input wire ena
+        .clka(~clk),    // input wire clka
+        .ena(1'b1),      // input wire ena
         .wea({4{data_ram_wea}}),      // input wire [3 : 0] wea
-        .addra(AluOut[9:0]),  // input wire [9 : 0] addra
+        .addra(dataadr),  // input wire [31 : 0] addra
         .dina(WriteData),    // input wire [31 : 0] dina
         .douta(ReadData)  // output wire [31 : 0] douta
     );
