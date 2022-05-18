@@ -12,7 +12,7 @@ module mips(
     assign inst_ram_ena=1'b1;
 
 	controller controller(
-    .instruction(instr),
+    .instr(instr),
     .jump(jump),
     .branch(branch),
     .alusrc(alusrc),
