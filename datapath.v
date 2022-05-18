@@ -1,7 +1,7 @@
 module datapath(
     input wire clka,rst,
     input wire[31:0] instr,ReadData,
-    input wire jump,regwrite,regdst,alusrc,branch,memtoreg,
+    input wire jump,regwriteM,regwriteW,regdst,alusrc,branch,memtoregW,memtoregE,
     output wire overflow,
     input wire [2:0] alucontrol,
     output wire[31:0] PC, AluOutM, WriteData
@@ -17,12 +17,18 @@ wire [4:0] rsD,rtD,rdD;
 
 wire [31:0] rd1E,rd2E,imme_extendE;
 wire [4:0] rsE,rtE,rdE;
-
+wire [4:0] write2regE;
 
 wire [31:0] AluOutM,rd2M,pc_branchM,rtM,rdM;
 wire  zeroM;
+wire [4:0] write2regM;
 
 wire[31:0] AluOutW,ReadDataW,rtW,rdW;
+wire [4:0] write2regW;
+
+wire [31:0] rd1,rd2;
+
+wire stallF,stallD,flushE;
 
 wire zero,pcsrc;
 assign pcsrc = zero & branch;
@@ -48,7 +54,8 @@ mux2 #(32) mux_pc_jump(
     );    
 // pc
 pc pc(
-    .clk(~clka),
+    .clk(clka),
+    .en(~stallF),
     .rst(rst),
     .din(pc_next_jump),
     .q(PC)
@@ -67,39 +74,38 @@ adder pc_plus_4(
 
 //F-D  stage
 
-floprc #(32) r1D(clka,rst,1'b0,instr,instrD);
+flopenrc #(32) r1D(clka,rst,~stallD,1'b0,instr,instrD);
 
-floprc #(32) r2D(clka,rst,1'b0,pc_plus_4,pc_plus_4D);
+flopenrc #(32) r2D(clka,rst,~stallD,1'b0,pc_plus_4,pc_plus_4D);
 
 
 //D-E stage
 
 
-floprc #(32) r1E(clka,rst,1'b0,rd1,rd1E);
-floprc #(32) r2E(clka,rst,1'b0,rd2,rd2E);
+flopenrc #(32) r1E(clka,rst,1'b1,flushE,rd1,rd1E);
+flopenrc #(32) r2E(clka,rst,1'b1,flushE,rd2,rd2E);
 
-floprc #(5) r3E(clka,rst,1'b0,rtD,rtE);
-floprc #(5) r4E(clka,rst,1'b0,rdD,rdE);
-floprc #(5) r5E(clka,rst,1'b0,pc_plus_4D,pc_plus_4E);
-floprc #(32) r6E(clka,rst,1'b0,imme_extend,imme_extendE);
+flopenrc #(5) r3E(clka,rst,1'b1,flushE,rtD,rtE);
+flopenrc #(5) r4E(clka,rst,1'b1,flushE,rdD,rdE);
+flopenrc #(5) r5E(clka,rst,1'b1,flushE,pc_plus_4D,pc_plus_4E);
+flopenrc #(32) r6E(clka,rst1'b1,flushE,imme_extend,imme_extendE);
+flopenrc #(32) r7E(clka,rst1'b1,flushE,rsD,rsE);
 
 
 
 //E-M stage
 
-floprc #(32) r1M(clka,rst,1'b0,AluOut,AluOutM);
-floprc #(1) r2M(clka,rst,1'b0,zero,zeroM);
-floprc #(32) r3M(clka,rst,1'b0,WriteData,rd2M);
-floprc #(32) r4M(clka,rst,1'b0,pc_branch,pc_branchM);
-floprc #(32) r5M(clka,rst,1'b0,rtE,rtM);
-floprc #(32) r6M(clka,rst,1'b0,rdE,rdM);
+flopenrc #(32) r1M(clka,rst,1'b1,1'b0,AluOut,AluOutM);
+flopenrc #(1) r2M(clka,rst,1'b1,1'b0,zero,zeroM);
+flopenrc #(32) r3M(clka,rst,1'b1,1'b0,WriteData,rd2M);
+flopenrc #(32) r4M(clka,rst,1'b1,1'b0,pc_branch,pc_branchM);
+flopenrc #(32) r5M(clka,rst,1'b1,1'b0,write2regE,write2regM);
 
 //M-W stage
 
-floprc #(32) r1W(clka,rst,1'b0,AluOutM,AluOutW);
-floprc #(32) r2W(clka,rst,1'b0,ReadData,ReadDataW);
-floprc #(32) r3W(clka,rst,1'b0,rtM,rtW);
-floprc #(32) r4W(clka,rst,1'b0,rdM,rdW);
+flopenrc #(32) r1W(clka,rst,1'b1,1'b0,AluOutM,AluOutW);
+flopenrc #(32) r2W(clka,rst,1'b1,1'b0,ReadData,ReadDataW);
+flopenrc #(32) r3W(clka,rst,1'b1,1'b0,write2regM,write2regW);
 
 // pc_branch  = pc+4 + signextent imm<<2
 adder pcbranch(
@@ -118,7 +124,7 @@ sign_extend sign_extend(
 mux2 #(32) mux_wd3(
     .a(AluOutW),
     .b(ReadDataW),
-    .s(memtoreg), //memtoreg
+    .s(memtoregW), //memtoreg
     .c(wd3)
     );
  
@@ -130,7 +136,7 @@ assign rdD=instrD[15:11];
 //regfile
 regfile regfile(
     .clk(clka),
-    .we3(regwrite), //regwrite
+    .we3(regwriteW), //regwrite
     .ra1(rtE), //base
     .ra2(rdE), // sw, load from rt
     .wa3(write2reg), // lw, store to rt
@@ -158,11 +164,32 @@ alu alu(
 
 // mux2 for wa3, write addr port of regfile
 mux2 #(5) mux_wa3(
-    .a(rtW),
-    .b(rdW),
+    .a(rtE),
+    .b(rdE),
     .s(regdst), //regdst
     .c(write2reg)
     );   
 
+
+mux3 #(32) srcA_sel(rd1E,wd3,alu_resultM,forwardAE,rd1);
+mux3 #(32) srcB_sel(rd2E,wd3,alu_resultM,forwardBE,rd2);
+wire [1:0] forwardAE,forwardBE;
+
+hazard hazard(
+   .rsD(),
+   .rtD(),
+  .rsE(rsE),
+  .rtE(rtE),
+  .writeregM(write2regM),
+  .writeregW(write2regW),
+  .regwriteM(regwriteM),
+  .regwriteW(regwriteW),
+  .memtoregE(memtoregE),
+  .forwardAE(forwardAE),
+  .forwardBE(forwardBE),
+  .stallF(stallF),
+  .stallD(stallD),
+  .flushE(flushE)
+);
 
 endmodule
