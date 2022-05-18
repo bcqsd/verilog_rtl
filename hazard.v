@@ -12,6 +12,9 @@ assign forwardAE = ((rsE != 5'b00000) & (rsE == writeregM) & regwriteM) ? 2'b10:
                     ((rsE != 5'b00000) & (rsE == writeregW) & regwriteW) ? 2'b01: 2'b00;
 assign forwardBE = ((rtE != 5'b00000) & (rtE == writeregM) & regwriteM) ? 2'b10:
                     ((rtE != 5'b00000) & (rtE == writeregW) & regwriteW) ? 2'b01: 2'b00;
+
+
+                    
 assign forwardAD = (rsD != 5'b00000) & (rsD == writeregM) & regwriteM;
 assign forwardBD = (rtD != 5'b00000) & (rtD == writeregM) & regwriteM;
 

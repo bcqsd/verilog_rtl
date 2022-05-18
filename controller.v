@@ -1,6 +1,6 @@
 module controller(
     input wire [31:0] instr,
-    output wire jump,regdst,alusrc,branch,memwrite,memtoreg,memen,regwriteM,regwriteW,
+    output wire jump,regdst,alusrc,branch,memwrite,memtoreg,memen,regwriteE,regwriteM,regwriteW,
     output wire [2:0] alucontrol
     );
 wire [1:0] aluop;
@@ -18,7 +18,7 @@ alu_dec alu_dec(
 );
 
 assign jump=sigsD[0];
-
+assign branch=sigsD[4];
 
 //jump,regwrite,regdst,alusrc,branch,memwrite,memtoreg,memen
 
@@ -28,6 +28,7 @@ assign regdst=sigsE[2];
 assign alusrc=sigsE[3];
 assign alucontrol=alucontrolE;
 assign memtoregE=sigsE[6];
+assign regwriteE=sigsE[1];
 
 //jump,regwrite,branch,memwrite,memtoreg,memen
 wire [5:0] sigsM;

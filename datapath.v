@@ -1,7 +1,7 @@
 module datapath(
     input wire clka,rst,
     input wire[31:0] instr,ReadData,
-    input wire jump,regwriteM,regwriteW,regdst,alusrc,branch,memtoregW,memtoregE,
+    input wire jump,regwriteM,regwriteW,regdst,alusrc,branch,memtoregW,memtoregE,regwriteE,
     output wire overflow,
     input wire [2:0] alucontrol,
     output wire[31:0] PC, AluOutM, WriteData
@@ -174,17 +174,22 @@ mux2 #(5) mux_wa3(
 mux3 #(32) srcA_sel(rd1E,wd3,alu_resultM,forwardAE,rd1);
 mux3 #(32) srcB_sel(rd2E,wd3,alu_resultM,forwardBE,rd2);
 wire [1:0] forwardAE,forwardBE;
+wire forwardAD,forwardBD;
 
 hazard hazard(
    .rsD(),
    .rtD(),
   .rsE(rsE),
   .rtE(rtE),
+  .writeregE(write2regE),
   .writeregM(write2regM),
   .writeregW(write2regW),
   .regwriteM(regwriteM),
   .regwriteW(regwriteW),
+  .regwriteE(regwriteE),
   .memtoregE(memtoregE),
+  .forwardAD(forwardAD),
+  .forwardBD(forwardBD),
   .forwardAE(forwardAE),
   .forwardBE(forwardBE),
   .stallF(stallF),

@@ -5,10 +5,9 @@ module mips(
     output wire inst_ram_ena,data_ram_ena,data_ram_wea
     );
 	
-	wire branch,memtoreg,alusrc,regdst,regwrite,jump,PCsrc,zero;
-	
-    wire[2:0] alucontrol;
-
+	wire memtoregE,memtoregM,memtoregW,alusrc,regdst,regwriteE,regwriteW,regwriteM,jump,pcsrc,zero,overflow;
+	wire[2:0] alucontrol;
+    wire flushE;
     assign inst_ram_ena=1'b1;
 
 	controller controller(
@@ -18,11 +17,13 @@ module mips(
     .alusrc(alusrc),
     .memwrite(data_ram_wea),
     .memtoreg(memtoreg),
-    .regwriteW(regwrite),
-    .regwriteM(regwrite),
+    .regwriteW(regwriteW),
+    .regwriteM(regwriteM),
+    .regwriteE(regwriteEE),
     .regdst(regdst),
     .memen(data_ram_ena),
-    .alucontrol(alucontrol)
+    .alucontrol(alucontrol),
+    .flushE(flushE)
     );
 	datapath datapath(
        .clka(clk),
@@ -39,7 +40,8 @@ module mips(
        .alusrc(alusrc),
        .branch(branch),
        .memtoreg(memtoreg),
-       .alucontrol(alucontrol)
+       .alucontrol(alucontrol),
+       .flushE(flushE)
     );
 	
 endmodule
