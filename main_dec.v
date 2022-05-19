@@ -1,20 +1,15 @@
 module main_dec(
     input wire [5:0] op,
-    output wire jump,
-    output wire branch,
-    output wire alusrc,
-    output wire memwrite,
-    output wire memtoreg,
-    output wire regwrite,
-    output wire regdst,
-    output wire memen,
+    output reg[7:0] sigs,
     output wire [1:0] aluop
     );
 
-reg [1:0] aluop_reg;
-reg [7:0] sigs;    
+reg [1:0] aluop_reg;    
 assign aluop = aluop_reg;
-assign {jump,branch,alusrc,memwrite,memtoreg,regwrite,regdst,memen} = sigs;   
+
+
+//assign {jump,branch,alusrc,memwrite,memtoreg,regwrite,regdst,memen} = signals;   
+
 always @(*) begin
     case (op)
         6'b000000:begin

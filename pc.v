@@ -7,6 +7,8 @@ always @(posedge clk) begin
     if(rst) q <= 32'b0;
     else if(en) begin
         q<=din;
-    end 
+    end  else begin
+       q<=q;
+    end
 end
 endmodule

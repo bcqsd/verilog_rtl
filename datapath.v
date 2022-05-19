@@ -1,200 +1,200 @@
 module datapath(
     input wire clka,rst,
-    input wire[31:0] instr,ReadData,
-    input wire jump,regwriteM,regwriteW,regdst,alusrc,branch,memtoregW,memtoregE,regwriteE,
-    output wire overflow,
+    input wire[31:0] instr,mem_data,
+    output wire[31:0] PC, alu_resultM, writedataM,
+    input wire jump,regwriteE,regwriteM,regwriteW,regdst,alusrc,branch,memtoregE,memtoregM, memtoregW,
     input wire [2:0] alucontrol,
-    output wire[31:0] PC, AluOutM, WriteData
+    output wire [31:0] instrD,
+    output wire flushE
     );
 
-wire [31:0] rd1, rd2, imme_extend;
-wire [31:0] alu_srcB, wd3, imme_sl2,instr_sl2;
-wire [31:0]  PC_plus4,pc_branch,pc_next,pc_next_jump;
-wire [4:0] write2reg;
+wire [31:0] PC_plus4F,imme_extend;
+wire [31:0] alu_srcA, alu_srcB, wd3, imme_sl2, pc_next, pc_next_jump, instr_sl2;
+wire [4:0] write2regE,write2regM,write2regW;
+wire zero,pcsrc,zeroM;
+wire [31:0] PC_plus4D, rd1D, rd2D, rd1E, rd2E,imme_extendE, alu_result,alu_resultM, pc_branchD, alu_resultW, mem_dataW, writedataE;
+wire [4:0] rsD, rtD, rdD, rsE, rtE, rdE;
+wire stallF,stallD;
 
-wire [31:0] instrD,pc_plus_4D,rd1D,rd2D;
-wire [4:0] rsD,rtD,rdD;
-
-wire [31:0] rd1E,rd2E,imme_extendE;
-wire [4:0] rsE,rtE,rdE;
-wire [4:0] write2regE;
-
-wire [31:0] AluOutM,rd2M,pc_branchM,rtM,rdM;
-wire  zeroM;
-wire [4:0] write2regM;
-
-wire[31:0] AluOutW,ReadDataW,rtW,rdW;
-wire [4:0] write2regW;
-
-wire [31:0] rd1,rd2;
-
-wire stallF,stallD,flushE;
-
-wire zero,pcsrc;
-assign pcsrc = zero & branch;
-assign WriteData = rd2E;
+wire [1:0] forwardAE,forwardBE;
+wire  forwardAD, forwardBD;
+wire [31:0] equalRD1, equalRD2;
+wire equalD;   
+assign pcsrc = equalD & branch;
 // mux2 for pc_next
 mux2 #(32) mux_pc_next(
-    .a(PC_plus4),
-    .b(pc_branchM),
+    .a(PC_plus4F),
+    .b(pc_branchD),
     .s(pcsrc), // pcsrc
     .c(pc_next)
     );
 // left shift 2 for pc_jump instr_index
 sl2 sl2_pc_jump(
-    .a(instr),
+    .a(instrD),
     .y(instr_sl2)
     );
 // mux2 for pc_jump
+wire [31:0] tmp1111;
+assign tmp1111 = {PC_plus4D[31:28],instr_sl2[27:0]};
 mux2 #(32) mux_pc_jump(
     .a(pc_next),
-    .b({PC_plus4[31:28],instr_sl2[27:0]}),
+    .b({PC_plus4D[31:28],instr_sl2[27:0]}),
     .s(jump), // jump
     .c(pc_next_jump)
     );    
 // pc
 pc pc(
     .clk(clka),
-    .en(~stallF),
     .rst(rst),
+    .en(~stallF),
     .din(pc_next_jump),
     .q(PC)
     );
-// left shift 2 for pc_branch imme
-sl2 sl2(
-    .a(imme_extendE),
-    .y(imme_sl2)
-    );
+// F-D
+flopenrc #(32) r1D(.clk(clka),.rst(rst),.en(~stallD),.clear(1'b0),.d(instr),.q(instrD));
+flopenrc #(32) r2D(.clk(clka),.rst(rst),.en(~stallD),.clear(1'b0),.d(PC_plus4F),.q(PC_plus4D));
+
 // pc+4
 adder pc_plus_4(
     .a(PC),
     .b(32'b00000000_00000000_00000000_00000100),
-    .c(PC_plus4)
+    .c(PC_plus4F)
     );
-
-//F-D  stage
-
-flopenrc #(32) r1D(clka,rst,~stallD,1'b0,instr,instrD);
-
-flopenrc #(32) r2D(clka,rst,~stallD,1'b0,pc_plus_4,pc_plus_4D);
-
-
-//D-E stage
-
-
-flopenrc #(32) r1E(clka,rst,1'b1,flushE,rd1,rd1E);
-flopenrc #(32) r2E(clka,rst,1'b1,flushE,rd2,rd2E);
-
-flopenrc #(5) r3E(clka,rst,1'b1,flushE,rtD,rtE);
-flopenrc #(5) r4E(clka,rst,1'b1,flushE,rdD,rdE);
-flopenrc #(5) r5E(clka,rst,1'b1,flushE,pc_plus_4D,pc_plus_4E);
-flopenrc #(32) r6E(clka,rst1'b1,flushE,imme_extend,imme_extendE);
-flopenrc #(32) r7E(clka,rst1'b1,flushE,rsD,rsE);
-
-
-
-//E-M stage
-
-flopenrc #(32) r1M(clka,rst,1'b1,1'b0,AluOut,AluOutM);
-flopenrc #(1) r2M(clka,rst,1'b1,1'b0,zero,zeroM);
-flopenrc #(32) r3M(clka,rst,1'b1,1'b0,WriteData,rd2M);
-flopenrc #(32) r4M(clka,rst,1'b1,1'b0,pc_branch,pc_branchM);
-flopenrc #(32) r5M(clka,rst,1'b1,1'b0,write2regE,write2regM);
-
-//M-W stage
-
-flopenrc #(32) r1W(clka,rst,1'b1,1'b0,AluOutM,AluOutW);
-flopenrc #(32) r2W(clka,rst,1'b1,1'b0,ReadData,ReadDataW);
-flopenrc #(32) r3W(clka,rst,1'b1,1'b0,write2regM,write2regW);
-
-// pc_branch  = pc+4 + signextent imm<<2
-adder pcbranch(
-    .a(PC_plus4E),
-    .b(imme_sl2), //!!!!
-    .c(pc_branch)
-);
 
 // imme extend
 sign_extend sign_extend(
     .a(instrD[15:0]),
     .y(imme_extend)
     );
-
-// mux2 for wd3, write data port of regfile
-mux2 #(32) mux_wd3(
-    .a(AluOutW),
-    .b(ReadDataW),
-    .s(memtoregW), //memtoreg
-    .c(wd3)
+// left shift 2 for pc_branch imme
+sl2 sl2(
+    .a(imme_extend),
+    .y(imme_sl2)
     );
- 
-
-assign rtD=instrD[20:16];
-assign rdD=instrD[15:11];
-
-
+// pc_beanch  = pc+4 + signextent imm<<2
+adder pcbranch(
+    .a(PC_plus4D),
+    .b(imme_sl2), //!!!!
+    .c(pc_branchD)
+);
+assign rsD = instrD[25:21];    
+assign rtD = instrD[20:16];
+assign rdD = instrD[15:11];
+    
 //regfile
 regfile regfile(
-    .clk(clka),
+    .clk(~clka),
     .we3(regwriteW), //regwrite
-    .ra1(rtE), //base
-    .ra2(rdE), // sw, load from rt
-    .wa3(write2reg), // lw, store to rt
+    .ra1(instrD[25:21]), //base
+    .ra2(instrD[20:16]), // sw, load from rt
+    .wa3(write2regW), // lw, store to rt
     .wd3(wd3),
-    .rd1(rd1),
-    .rd2(rd2) 
+    .rd1(rd1D),
+    .rd2(rd2D) 
     );
+//D-E
+flopenrc #(32) r1E(.clk(clka),.rst(rst),.en(1'b1),.clear(flushE),.d(rd1D),.q(rd1E));
+flopenrc #(32) r2E(.clk(clka),.rst(rst),.en(1'b1),.clear(flushE),.d(rd2D),.q(rd2E));
+flopenrc #(5) r3E(.clk(clka),.rst(rst),.en(1'b1),.clear(flushE),.d(rtD),.q(rtE));
+flopenrc #(5) r4E(.clk(clka),.rst(rst),.en(1'b1),.clear(flushE),.d(rdD),.q(rdE));
+//flopenrc #(5) r5E(.clk(clka),.rst(rst),.en(1'b1),.clear(flushE),.d(PC_plus4D),.q(PC_plus4E));
+flopenrc #(32) r6E(.clk(clka),.rst(rst),.en(1'b1),.clear(flushE),.d(imme_extend),.q(imme_extendE));
+flopenrc #(5) r7E(.clk(clka),.rst(rst),.en(1'b1),.clear(flushE),.d(rsD),.q(rsE));
+//flopenrc #(3) r8E(.clk(clka),.rst(rst),.en(1'b1),.clear(flushE),.d(alucontrol),.q(alucontrolE));
+  
+mux3 #(32) srcA_sel(rd1E,wd3,alu_resultM,forwardAE, alu_srcA);
+mux3 #(32) srcB_sel(rd2E,wd3,alu_resultM,forwardBE, writedataE);
 // mux2 for alu_srcB
 mux2 #(32) mux_alu_srcb(
-    .a(rd2),
-    .b(imme_extend),
+    .a(writedataE),
+    .b(imme_extendE),
     .s(alusrc), //alusrc
     .c(alu_srcB)
-    );    
-    
+    );  
 //alu
 alu alu(
-    .a(rd1),   //alu_srcA  read from regfile
+    .a(alu_srcA),
     .b(alu_srcB),
     .f(alucontrol), //alucontrol
-    .s(AluOut),
-    .overflow(overflow),
+    .s(alu_result),
+    .overflow(),
     .zero(zero)
     );
-
 // mux2 for wa3, write addr port of regfile
 mux2 #(5) mux_wa3(
     .a(rtE),
     .b(rdE),
     .s(regdst), //regdst
-    .c(write2reg)
-    );   
-
-
-mux3 #(32) srcA_sel(rd1E,wd3,alu_resultM,forwardAE,rd1);
-mux3 #(32) srcB_sel(rd2E,wd3,alu_resultM,forwardBE,rd2);
-wire [1:0] forwardAE,forwardBE;
-wire forwardAD,forwardBD;
-
+    .c(write2regE)
+    );
+// E-M
+floprc #(32) r1M(.clk(clka),.rst(rst),.clear(1'b0),.d(alu_result),.q(alu_resultM));
+floprc #(1) r2M(.clk(clka),.rst(rst),.clear(1'b0),.d(zero),.q(zeroM));
+floprc #(32) r3M(.clk(clka),.rst(rst),.clear(1'b0),.d(writedataE),.q(writedataM));
+//floprc #(32) r4M(.clk(clka),.rst(rst),.clear(1'b0),.d(pc_branch),.q(pc_branchM));
+floprc #(5) r5M(.clk(clka),.rst(rst),.clear(1'b0),.d(write2regE),.q(write2regM));
+//floprc #(5) r6M(
+//    .clk(clka),
+//    .rst(rst),
+//    .clear(1'b0),
+//    .d(rdE),
+//    .q(rdM)
+//    );
+// M-W    
+floprc #(32) r1W(.clk(clka),.rst(rst),.clear(1'b0),.d(alu_resultM),.q(alu_resultW));
+floprc #(32) r2W(.clk(clka),.rst(rst),.clear(1'b0),.d(mem_data),.q(mem_dataW));
+floprc #(5) r3W(.clk(clka),.rst(rst),.clear(1'b0),.d(write2regM),.q(write2regW));
+//floprc #(5) r4W(
+//    .clk(clka),
+//    .rst(rst),
+//    .clear(1'b0),
+//    .d(rdM),
+//    .q(rdW)
+//    );
+// mux2 for wd3, write data port of regfile
+mux2 #(32) mux_wd3(
+    .a(alu_resultW),
+    .b(mem_dataW),
+    .s(memtoregW), //memtoreg
+    .c(wd3)
+    );
+      
+//hazard
 hazard hazard(
-   .rsD(),
-   .rtD(),
-  .rsE(rsE),
-  .rtE(rtE),
-  .writeregE(write2regE),
-  .writeregM(write2regM),
-  .writeregW(write2regW),
-  .regwriteM(regwriteM),
-  .regwriteW(regwriteW),
-  .regwriteE(regwriteE),
-  .memtoregE(memtoregE),
-  .forwardAD(forwardAD),
-  .forwardBD(forwardBD),
-  .forwardAE(forwardAE),
-  .forwardBE(forwardBE),
-  .stallF(stallF),
-  .stallD(stallD),
-  .flushE(flushE)
+    .rsD(rsD),
+    .rtD(rtD),
+    .rsE(rsE),
+    .rtE(rtE),
+    .writeregE(write2regE),
+    .writeregM(write2regM),
+    .writeregW(write2regW),
+    .regwriteE(regwriteE),
+    .regwriteM(regwriteM),
+    .regwriteW(regwriteW),
+    .memtoregE(memtoregE),
+    .memtoregM(memtoregM),
+    .branchD(branch),
+    .forwardAE(forwardAE),
+    .forwardBE(forwardBE),
+    .forwardAD(forwardAD),
+    .forwardBD(forwardBD),
+    .stallF(stallF),
+    .stallD(stallD),
+    .flushE(flushE)
+    
 );
-
+mux2 #(32) equal1(
+    .a(rd1D),
+    .b(alu_resultM),
+    .s(forwardAD),
+    .c(equalRD1)
+);
+mux2 #(32) equal2(
+    .a(rd2D),
+    .b(alu_resultM),
+    .s(forwardBD),
+    .c(equalRD2)
+);
+assign equalD = (equalRD1 == equalRD2);
 endmodule
+
