@@ -6,7 +6,7 @@ module mips(
     input wire [31:0] instr, mem_rdata
     );
 	
-	wire memtoregE,memtoregM,memtoregW,alusrc,regdst,regwriteE,regwriteW,regwriteM,jump,pcsrc,zero,overflow;
+	wire branch,memtoregE,memtoregM,memtoregW,alusrc,regdst,regwriteE,regwriteW,regwriteM,jump,pcsrc,zero,overflow;
 	wire[2:0] alucontrol;
     wire[31:0] instrD;
     wire flushE;
